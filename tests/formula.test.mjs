@@ -1,0 +1,13 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {calculate,calculateEntry,CATEGORIES} from '../formula.mjs';
+const entry=(overrides={})=>({date:'2025-06-01',type:'work',band:'Day',mode:'hours',hours:1,deduction:0,...overrides});
+const claim=(entries,overrides={})=>({month:'2025-06',rateMode:'manual',rate:19.52,salary:0,entries,...overrides});
+test('Sambungan contoh Excel menghasilkan 3.5 jam dan RM78.08',()=>{const r=calculate(claim([entry(),entry({hours:2}),entry({hours:.5,band:'Night'})]));assert.equal(r.hours,3.5);assert.equal(r.categories[0].hours,3);assert.equal(r.categories[1].hours,.5);assert.equal(r.total,78.08);});
+test('Keenam-enam kategori sama dengan pengganda sumber',()=>{const expected=[21.96,24.4,24.4,29.28,34.16,39.04];for(let i=0;i<CATEGORIES.length;i++){const key=CATEGORIES[i].key;const r=calculate(claim([entry({type:key.replace(/Day|Night/,''),band:key.endsWith('Day')?'Day':'Night'})]));assert.ok(Math.abs(r.total-expected[i])<1e-10);}});
+test('Mod gaji tidak membundarkan kadar atau kategori sebelum jumlah',()=>{const r=calculate(claim([entry({hours:.25}),entry({hours:.75,band:'Night'})],{rateMode:'salary',salary:3000}));assert.equal(r.rate,36000/2504);assert.equal(r.total,(.25*1.125+.75*1.25)*36000/2504);});
+test('Potongan dan masa lintas tengah malam',()=>{const r=calculateEntry(entry({mode:'time',start:'22:00',end:'02:30',overnight:true,band:'Night',deduction:.5}));assert.equal(r.gross,4.5);assert.equal(r.net,4);});
+test('Potongan penuh menghasilkan sifar, pecahan minit dikekalkan',()=>{assert.equal(calculateEntry(entry({hours:1,deduction:1})).net,0);assert.equal(calculateEntry(entry({mode:'time',start:'18:00',end:'18:01'})).gross,1/60);});
+test('Input tidak sah ditolak',()=>{for(const e of [entry({hours:-1}),entry({hours:25}),entry({hours:NaN}),entry({deduction:2}),entry({date:'2025-02-30'}),entry({mode:'time',start:'22:00',end:'02:00'}),entry({type:'unknown'}),entry({band:'unknown'})])assert.throws(()=>calculateEntry(e));assert.throws(()=>calculate(claim([entry({date:'2025-07-01'})])));});
+test('Semua formula sebenar Jun.xls direkod dan diliputi',()=>{const w=JSON.parse(fs.readFileSync(new URL('../workbook-analysis.json',import.meta.url)));const formulas=w.SheetNames.flatMap(n=>Object.entries(w.Sheets[n]).filter(([,c])=>c.f).map(([a,c])=>[n,a,c.f]));assert.equal(formulas.length,16);for(const [n,a,f]of formulas){if(n==='ajie')assert.match(f,/^SUM\(([E-M])16:\1[1]8\)$/);else if(a==='M14')assert.equal(f,'SUM(M5:M12)');else assert.match(f,/^SUM\(E(5|6|8|9|11|12)\*H\1\*K\1\)$/);}assert.deepEqual([5,6,8,9,11,12].map(r=>w.Sheets[' ajie 1']['H'+r].v),CATEGORIES.map(c=>c.factor));});

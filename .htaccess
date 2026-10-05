@@ -1,0 +1,5 @@
+Options -Indexes
+<FilesMatch "^(workbook-analysis\.json|router\.php|PRODUCT\.md|DESIGN\.md|README\.md|.*\.cmd)$">
+Require all denied
+</FilesMatch>
+RedirectMatch 403 ^/OT/(storage|tests|docs|node_modules|\.npm-cache)(/|$)
