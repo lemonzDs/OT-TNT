@@ -1,4 +1,6 @@
-# Rekod OT SUK Pahang
+# OT-TNT
+
+Claim Perjalanan dan Lebih Masa — Rekod OT SUK Pahang.
 
 Sistem tempatan seorang pengguna berdasarkan Jun.xls. Mengandungi rekod bulanan, input jumlah jam atau tempoh masa, enam kategori kadar, profil setiap bulan, cetakan, sandaran dan pemulihan.
 
